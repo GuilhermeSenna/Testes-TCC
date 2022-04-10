@@ -16,8 +16,11 @@ import cv2
 import os
 import seaborn as sns
 import pandas as pd
+import sys
 from skimage.filters import sobel
 from skimage.feature import graycomatrix, graycoprops
+from sklearn import preprocessing
+import timeit
 from skimage.measure import shannon_entropy
 
 # print(os.listdir("images/natural/"))
@@ -25,137 +28,101 @@ from skimage.measure import shannon_entropy
 # Resize images to
 # SIZE = 128
 
-# Capture images and labels into arrays.
-# Start by creating empty lists.
-train_images = []
-train_labels = []
-# for directory_path in glob.glob("cell_images/train/*"):
-for directory_path in glob.glob("images_resized/train/*"):
-    label = directory_path.split("\\")[-1]
-    # print(label)
-    for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
-        # print(img_path)
-        img = cv2.imread(img_path, 0)  # Reading color images
-        # img = cv2.resize(img, (SIZE, SIZE))  # Resize images
-        train_images.append(img)
-        train_labels.append(label)
-
-train_images = np.array(train_images)
-train_labels = np.array(train_labels)
-
-# Do exactly the same for test/validation images
-# test
-test_images = []
-test_labels = []
-# for directory_path in glob.glob("cell_images/test/*"):
-for directory_path in glob.glob("images_resized/validation/*"):
-    fruit_label = directory_path.split("\\")[-1]
-    for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
-        img = cv2.imread(img_path, 0)
-        # img = cv2.resize(img, (SIZE, SIZE))
-        test_images.append(img)
-        test_labels.append(fruit_label)
-
-test_images = np.array(test_images)
-test_labels = np.array(test_labels)
-
-# Encode labels from text (folder names) to integers.
-from sklearn import preprocessing
-
-le = preprocessing.LabelEncoder()
-le.fit(test_labels)
-test_labels_encoded = le.transform(test_labels)
-le.fit(train_labels)
-train_labels_encoded = le.transform(train_labels)
-
-# Split data into test and train datasets (already split but assigning to meaningful convention)
-# If you only have one dataset then split here
-x_train, y_train, x_test, y_test = train_images, train_labels_encoded, test_images, test_labels_encoded
+# Numpy Array (explicação)
+# The main benefits of using NumPy arrays should be smaller memory consumption and better runtime behavior.
 
 
-# Normalize pixel values to between 0 and 1
-# x_train, x_test = x_train / 255.0, x_test / 255.0
+def train_set():
+    # Imagens de treino e suas classes
+    train_images = []
+    train_labels = []
+
+    # Varre a pasta de treino pegando as fotos da pasta
+    for directory_path in glob.glob("folhas/train/*"):
+        label = directory_path.split("\\")[-1]
+        for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
+            img = cv2.imread(img_path, 0)  # Reading color images
+            img = cv2.resize(img, (256, 256))  # Resize images
+            train_images.append(img)
+            train_labels.append(label)
+
+    # Coleção total de fotos de treino e classes em NP.array
+    return np.array(train_images), np.array(train_labels)
+
+
+def test_set():
+    # Imagens de teste e suas classes
+    test_images = []
+    test_labels = []
+
+    # Varre a pasta de teste pegando as fotos da pasta
+    for directory_path in glob.glob("folhas/test/*"):
+        fruit_label = directory_path.split("\\")[-1]
+        for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
+            img = cv2.imread(img_path, 0)
+            img = cv2.resize(img, (256, 256))  # Resize images
+            test_images.append(img)
+            test_labels.append(fruit_label)
+
+    # Coleção total de fotos de teste e classes em NP.array
+    return np.array(test_images), np.array(test_labels)
+
+
+def pre_processing(le, train_labels, test_labels):
+    # Codifica os labels em valores entre 0 e n_classes - 1 (inteiros)
+    # Tanto pro treino quanto pro teste
+    le.fit(train_labels)
+    train_labels_encoded = le.transform(train_labels)
+    le.fit(test_labels)
+    test_labels_encoded = le.transform(test_labels)
+
+    return train_labels_encoded, test_labels_encoded
+
 
 ###################################################################
 # FEATURE EXTRACTOR function
 # input shape is (n, x, y, c) - number of images, x, y, and channels
 def feature_extractor(dataset):
     image_dataset = pd.DataFrame()
+
     for image in range(dataset.shape[0]):  # iterate through each file
-        # print(image)
 
-        df = pd.DataFrame()  # Temporary data frame to capture information for each loop.
-        # Reset dataframe to blank after each loop.
+        # Dataframe temporário para manter os valores
+        # Reseta o dataframe a cada loop
+        df = pd.DataFrame()
 
-        img = dataset[image, :, :]
-        ################################################################
-        # START ADDING DATA TO THE DATAFRAME
+        # Obtendo a imagem do dataset
+        img = dataset[image]
 
-        # Full image
-        # GLCM = greycomatrix(img, [1], [0, np.pi/4, np.pi/2, 3*np.pi/4])
-        GLCM = graycomatrix(img, [1], [0])
-        GLCM_Energy = graycoprops(GLCM, 'energy')[0]
-        df['Energy'] = GLCM_Energy
-        GLCM_corr = graycoprops(GLCM, 'correlation')[0]
-        df['Corr'] = GLCM_corr
-        GLCM_diss = graycoprops(GLCM, 'dissimilarity')[0]
-        df['Diss_sim'] = GLCM_diss
-        GLCM_hom = graycoprops(GLCM, 'homogeneity')[0]
-        df['Homogen'] = GLCM_hom
-        GLCM_contr = graycoprops(GLCM, 'contrast')[0]
-        df['Contrast'] = GLCM_contr
+        # Ângulos
+        # pi/4 - 45°
+        # pi/2 - 90º
+        configs = [
+            {'distancia': [1], 'angulo': [0]},
+            {'distancia': [2], 'angulo': [0]},
+            {'distancia': [3], 'angulo': [0]},
+            {'distancia': [1], 'angulo': [np.pi / 4]},
+            {'distancia': [1], 'angulo': [np.pi / 2]},
+        ]
 
-        GLCM2 = graycomatrix(img, [3], [0])
-        GLCM_Energy2 = graycoprops(GLCM2, 'energy')[0]
-        df['Energy2'] = GLCM_Energy2
-        GLCM_corr2 = graycoprops(GLCM2, 'correlation')[0]
-        df['Corr2'] = GLCM_corr2
-        GLCM_diss2 = graycoprops(GLCM2, 'dissimilarity')[0]
-        df['Diss_sim2'] = GLCM_diss2
-        GLCM_hom2 = graycoprops(GLCM2, 'homogeneity')[0]
-        df['Homogen2'] = GLCM_hom2
-        GLCM_contr2 = graycoprops(GLCM2, 'contrast')[0]
-        df['Contrast2'] = GLCM_contr2
+        # Adicionando dados ao Dataframe
 
-        GLCM3 = graycomatrix(img, [5], [0])
-        GLCM_Energy3 = graycoprops(GLCM3, 'energy')[0]
-        df['Energy3'] = GLCM_Energy3
-        GLCM_corr3 = graycoprops(GLCM3, 'correlation')[0]
-        df['Corr3'] = GLCM_corr3
-        GLCM_diss3 = graycoprops(GLCM3, 'dissimilarity')[0]
-        df['Diss_sim3'] = GLCM_diss3
-        GLCM_hom3 = graycoprops(GLCM3, 'homogeneity')[0]
-        df['Homogen3'] = GLCM_hom3
-        GLCM_contr3 = graycoprops(GLCM3, 'contrast')[0]
-        df['Contrast3'] = GLCM_contr3
-
-        GLCM4 = graycomatrix(img, [0], [np.pi / 4])
-        GLCM_Energy4 = graycoprops(GLCM4, 'energy')[0]
-        df['Energy4'] = GLCM_Energy4
-        GLCM_corr4 = graycoprops(GLCM4, 'correlation')[0]
-        df['Corr4'] = GLCM_corr4
-        GLCM_diss4 = graycoprops(GLCM4, 'dissimilarity')[0]
-        df['Diss_sim4'] = GLCM_diss4
-        GLCM_hom4 = graycoprops(GLCM4, 'homogeneity')[0]
-        df['Homogen4'] = GLCM_hom4
-        GLCM_contr4 = graycoprops(GLCM4, 'contrast')[0]
-        df['Contrast4'] = GLCM_contr4
-
-        GLCM5 = graycomatrix(img, [0], [np.pi / 2])
-        GLCM_Energy5 = graycoprops(GLCM5, 'energy')[0]
-        df['Energy5'] = GLCM_Energy5
-        GLCM_corr5 = graycoprops(GLCM5, 'correlation')[0]
-        df['Corr5'] = GLCM_corr5
-        GLCM_diss5 = graycoprops(GLCM5, 'dissimilarity')[0]
-        df['Diss_sim5'] = GLCM_diss5
-        GLCM_hom5 = graycoprops(GLCM5, 'homogeneity')[0]
-        df['Homogen5'] = GLCM_hom5
-        GLCM_contr5 = graycoprops(GLCM5, 'contrast')[0]
-        df['Contrast5'] = GLCM_contr5
-
-        # Add more filters as needed
-        # entropy = shannon_entropy(img)
-        # df['Entropy'] = entropy
+        # Atributos considerados:
+        # Energia, Correlação, dissimilaridade, homogeneidade, contraste e entropia
+        for n, config in enumerate(configs):
+            GLCM = graycomatrix(img, config["distancia"], config["angulo"])
+            GLCM_Energy = graycoprops(GLCM, 'energy')[0]
+            df['Energy' + str(n+1)] = GLCM_Energy
+            GLCM_corr = graycoprops(GLCM, 'correlation')[0]
+            df['Corr' + str(n+1)] = GLCM_corr
+            GLCM_diss = graycoprops(GLCM, 'dissimilarity')[0]
+            df['Diss_sim' + str(n+1)] = GLCM_diss
+            GLCM_hom = graycoprops(GLCM, 'homogeneity')[0]
+            df['Homogen' + str(n+1)] = GLCM_hom
+            GLCM_contr = graycoprops(GLCM, 'contrast')[0]
+            df['Contrast' + str(n+1)] = GLCM_contr
+            entropy = shannon_entropy(img)
+            df['Entropy' + str(n+1)] = entropy
 
         # Append features from current image to the dataset
         image_dataset = image_dataset.append(df)
@@ -163,27 +130,49 @@ def feature_extractor(dataset):
     return image_dataset
 
 
+# Monta a coleção de imagens de treino e teste
+train_images, train_labels = train_set()
+test_images, test_labels = test_set()
+
+# Atribui os valores para a padronização utilizada
+# x_train: Imagens de treino
+# y_train: Classes de treino
+
+# x_test: Imagens de teste
+# y_test: Classes de teste
+
+x_train, x_test = train_images, test_images
+
+# Instância do codificador
+le = preprocessing.LabelEncoder()
+y_train, y_test = pre_processing(le, train_labels, test_labels)  # Classes para inteiros (0 ... nº classes - 1)
+
+# Normalize pixel values to between 0 and 1
+# x_train, x_test = x_train / 255.0, x_test / 255.0
+
 ####################################################################
-# Extract features from training images
+# Extração de atributos das imagens de treino
 image_features = feature_extractor(x_train)
 X_for_ML = image_features
-# Reshape to a vector for Random Forest / SVM training
-# n_features = image_features.shape[1]
-# image_features = np.expand_dims(image_features, axis=0)
-# X_for_ML = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #images, features
 
-# Define the classifier
-# from sklearn.ensemble import RandomForestClassifier
-# RF_model = RandomForestClassifier(n_estimators = 50, random_state = 42)
+"""
+Reshape to a vector for Random Forest / SVM training
+n_features = image_features.shape[1]
+image_features = np.expand_dims(image_features, axis=0)
+X_for_ML = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #images, features
 
-# Can also use SVM but RF is faster and may be more accurate.
-# from sklearn import svm
-# SVM_model = svm.SVC(decision_function_shape='ovo')  #For multiclass classification
-# SVM_model.fit(X_for_ML, y_train)
+Define the classifier
+from sklearn.ensemble import RandomForestClassifier
+RF_model = RandomForestClassifier(n_estimators = 50, random_state = 42)
 
-# Fit the model on training data
-# RF_model.fit(X_for_ML, y_train) #For sklearn no one hot encoding
+Can also use SVM but RF is faster and may be more accurate.
+from sklearn import svm
+SVM_model = svm.SVC(decision_function_shape='ovo')  #For multiclass classification
+SVM_model.fit(X_for_ML, y_train)
 
+Fit the model on training data
+RF_model.fit(X_for_ML, y_train) #For sklearn no one hot encoding
+"""
 
 import lightgbm as lgb
 
@@ -198,7 +187,7 @@ lgbm_params = {'learning_rate': 0.05,
                'metric': 'multi_logloss',
                'num_leaves': 100,
                'max_depth': 10,
-               'num_class': 6}
+               'num_class': 4}
 
 lgb_model = lgb.train(lgbm_params, d_train, 100)  # 50 iterations. Increase iterations for small learning rates
 

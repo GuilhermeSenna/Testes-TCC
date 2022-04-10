@@ -23,5 +23,6 @@ for image in os.listdir(path):
     if os.path.isfile(path + image):
         im = Image.open(path + image)
 
-        imResize = im.resize((34, 34), Image.ANTIALIAS)
-        imResize.save(path_resize + image, 'JPEG', quality=100)
+        print(im.size)
+        # imResize = im.resize((34, 34), Image.ANTIALIAS)
+        # imResize.save(path_resize + image, 'JPEG', quality=100)
