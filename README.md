@@ -1,9 +1,10 @@
 # Testes-TCC
-Reconhecimento de tipos de sementes de cacau
+ANÁLISE E CLASSIFICAÇÃO DE IMAGENS BASEADA EM CARACTERÍSTICAS DE
+TEXTURAS PARA DETECÇÃO DE DOENÇAS EM FOLHAS DE PLANTAS
 
 
-### Dataset - [Dataset_link](https://www.kaggle.com/datasets/khawaritzmiabdallah/cocoa-beans-image-dataset)
+### Dataset - [Dataset_link](https://www.kaggle.com/datasets/rajibdpi/plant-disease-dataset?select=Plant_leaf_diseases_dataset_with_augmentation)
 
 ### Citation:
 
-Adhitya, Y.; Prakosa, S.W.; Köppen, M.; Leu, J.-S. Feature Extraction for Cocoa Bean Digital Image Classification Prediction for Smart Farming Application. Agronomy 2020, 10, 1642.
+Geetharamani G., Arun Pandian J. Identification of plant leaf diseases using a nine-layer deep convolutional neural network. Computers & Electrical Engineering. Volume 76, 2019, Pages 323-338.
