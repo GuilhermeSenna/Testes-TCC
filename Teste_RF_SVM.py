@@ -41,7 +41,7 @@ def train_set():
     media_RGB = []
 
     # Varre a pasta de treino pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/train_/*"):
+    for directory_path in glob.glob("amendoas/train/*"):
         label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
             #
@@ -84,7 +84,7 @@ def test_set():
     media_RGB = []
 
     # Varre a pasta de teste pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/test_/*"):
+    for directory_path in glob.glob("amendoas/test/*"):
         fruit_label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
 
@@ -97,6 +97,7 @@ def test_set():
 
             media_RGB = cv2.mean(cv2.imread(img_path))
             test_medias.append(media_RGB)
+        
 
             img = cv2.imread(img_path, 0)
             img = cv2.resize(img, (SIZE, SIZE))  # Resize images
@@ -167,7 +168,7 @@ def feature_extractor(dataset, medias):
         # print(medias[i])
 
         # media_cinza = cv2.mean(img)[0]
-        #
+
 
         R = medias[i][0]
         G = medias[i][1]
@@ -176,15 +177,15 @@ def feature_extractor(dataset, medias):
         df['R'] = [R]
         df['G'] = [G]
         df['B'] = [B]
-        #
+
         df['skew'] = [fo.skew(img.reshape(-1))]
         df['kurtosis'] = [fo.kurtosis(img.reshape(-1))]
-        # # df['variation' + str(n + 1)] = fo.variation(img.reshape(-1))
+        # df['variation' + str(n + 1)] = fo.variation(img.reshape(-1))
         df['entropy'] = [fo.entropy(img.reshape(-1))]
-        # # df['media'] = np.average(img)
+        # df['media'] = np.average(img)
         area = n_black / n_total
-        df['Area'] = [area]
-        # # df['max' + str(n+1)] = np.max(img)
+        df['area'] = area
+        # df['max' + str(n+1)] = np.max(img)
         entropy = shannon_entropy(img)
         df['Entropy'] = entropy
 
@@ -337,6 +338,15 @@ y_train, y_test = pre_processing(le, train_labels, test_labels)  # Codificando n
 image_features = feature_extractor(x_train, medias_RGB_treino)
 X_for_ML = image_features
 #
+
+# n_features = image_features.shape[1]
+# image_features = np.expand_dims(image_features, axis=0)
+# X_for_ML = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #images, features
+#
+# from sklearn.ensemble import RandomForestClassifier
+# RF_model = RandomForestClassifier(n_estimators = 50, random_state = 42)
+#
+# RF_model.fit(X_for_ML, y_train) #For sklearn no one hot encoding
 """
 Reshape to a vector for Random Forest / SVM training
 # n_features = image_features.shape[1]
@@ -365,8 +375,6 @@ import lightgbm as lgb
 # y_train: Labels das imagens de treino
 d_train = lgb.Dataset(X_for_ML, label=y_train)
 
-print(d_train)
-
 # https://lightgbm.readthedocs.io/en/latest/Parameters.html
 
 # 84,375
@@ -375,12 +383,14 @@ print(d_train)
 
 lgbm_params = {
                 'learning_rate': 0.05,         # Taxa de aprendizagem
-               'boosting_type': 'gbdt',        # Boosting utilizado
+               'boosting_type': 'rf',        # Boosting utilizado
                'objective': 'multiclass',      # Multiclasse
                'metric': 'multi_logloss',      # "usar o logloss para avaliar se as probabilidades fazem sentido."
                'num_leaves': 100,              # Número máximos de folhas
                'max_depth': 20,                # Máxima profundidade da árvore
-               'num_class': len(set(y_train))  #  Nº de classes utilizadas - Obtém dinamicamente com base nos valores distintos da lista
+               'num_class': len(set(y_train)),  #  Nº de classes utilizadas - Obtém dinamicamente com base nos valores distintos da lista
+                'bagging_fraction': .7,
+                'bagging_freq': 1
                }
 
 # Treino do modelo com os parâmetros definidos
@@ -400,9 +410,7 @@ test_for_RF = np.reshape(test_features, (x_test.shape[0], -1))
 
 # Predição nos testes
 test_prediction = lgb_model.predict(test_for_RF)
-test_prediction = np.argmax(test_prediction, axis=0)
-
-print(test_prediction)
+test_prediction = np.argmax(test_prediction, axis=1)
 
 # Inversão da codificação dos labels para obter as informaçoes originais. Inteiros (0 ... nº classes - 1) para os nomes das classes
 test_prediction = le.inverse_transform(test_prediction)
@@ -411,17 +419,15 @@ test_prediction = le.inverse_transform(test_prediction)
 from sklearn import metrics
 
 # Acuracidade
-# print("Accurácia = ", metrics.accuracy_score(test_labels, test_prediction))
-# print("Precisão = ", metrics.precision_score(test_labels, test_prediction, average='micro'))
-# print("Sensibilidade = ", metrics.recall_score(test_labels, test_prediction, average='micro'))
-# print("Especificidade = ", metrics.accuracy_score(test_labels, test_prediction, pos_label=0))
+print("Accuracy = ", metrics.accuracy_score(test_labels, test_prediction))
+
+print(metrics.classification_report(test_labels, test_prediction))
+
 
 # Print confusion matrix
 from sklearn.metrics import confusion_matrix
 
 cm = confusion_matrix(test_labels, test_prediction)
-
-print(metrics.classification_report(test_labels, test_prediction))
 
 fig, ax = plt.subplots(figsize=(6, 6))  # Sample figsize in inches
 sns.set(font_scale=1.6)

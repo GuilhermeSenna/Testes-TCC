@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 
 
 actual_path = os.path.abspath(os.getcwd())
-path_images = '/images_resized/'
-class_ = 'Cocoa Beans/'
+path_images = '/amendoas/'
+class_ = 'teste/'
 path = actual_path.replace('\\', '/') + path_images + class_
 
 batch_size = 32
-img_height = 34
-img_width = 34
+img_height = 256
+img_width = 256
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
   path,
