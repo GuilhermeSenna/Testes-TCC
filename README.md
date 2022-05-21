@@ -1,10 +1,10 @@
 # Testes-TCC
-ANÁLISE E CLASSIFICAÇÃO DE IMAGENS BASEADA EM CARACTERÍSTICAS DE
-TEXTURAS PARA DETECÇÃO DE DOENÇAS EM FOLHAS DE PLANTAS
+
+ANÁLISE E CLASSIFICAÇÃO DE IMAGENS DE AMÊNDOAS DE CACAU NO TESTE DE CORTE COM GRADIENT BOOSTING
 
 
-### Dataset - [Dataset_link](https://www.kaggle.com/datasets/rajibdpi/plant-disease-dataset?select=Plant_leaf_diseases_dataset_with_augmentation)
+### Dataset - [Dataset_link]([https://www.kaggle.com/datasets/rajibdpi/plant-disease-dataset?select=Plant_leaf_diseases_dataset_with_augmentation](https://data.mendeley.com/datasets/pcx7mj68yn/4))
 
 ### Citation:
 
-Geetharamani G., Arun Pandian J. Identification of plant leaf diseases using a nine-layer deep convolutional neural network. Computers & Electrical Engineering. Volume 76, 2019, Pages 323-338.
+Santos, Felipe (2019), “Image Datasets of Cocoa Beans for Taxonomy Nuances Evaluation”, Mendeley Data, V4, doi: 10.17632/pcx7mj68yn.4
