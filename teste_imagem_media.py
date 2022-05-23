@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+from random import randint
 
 
 path = r'C:\Users\guilh\PycharmProjects\Novo-TCC\amendoas\test\Aglutinada\A_095_p7_v3.JPG'
@@ -11,6 +12,25 @@ tamanho = 4096
 imagem_colorida = cv2.imread(path)
 # imagem_colorida_redimensionada = cv2.resize(imagem_colorida, (tamanho, tamanho ))
 imagem_cinza = cv2.cvtColor(imagem_colorida, cv2.COLOR_RGB2GRAY)
+
+blur = cv2.blur(imagem_cinza, (15,15))
+plt.imshow(blur, cmap='gray')
+plt.show()
+
+ret, thresh = cv2.threshold(blur, 10, 255, 0) # threshold (essa etapa seria equivalente a segmentação por redes neurais)
+plt.imshow(thresh, cmap='gray')
+plt.show()
+
+contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE) # acha os contornos
+for i, c in enumerate(contours): # desenha os contornos na imagem com cores aleatórias para cada contorno
+    img_contourn = cv2.drawContours(imagem_cinza, contours, i, (randint(0,255),randint(0,255),randint(0,255)), 3)
+plt.imshow(img_contourn) # perceba que um contorno é sempre o retangulo mais ext
+plt.show()
+
+print('Contorno retangular externo:', contours[0], 'possui %i pontos' % len(contours[0]))
+
+area = cv2.contourArea(contours[0])
+print('A área em pixels é de %i pixels.' % area)
 #
 plt.imshow(imagem_cinza, cmap='gray')
 plt.show()

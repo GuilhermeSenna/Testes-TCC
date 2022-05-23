@@ -41,7 +41,7 @@ def train_set():
     media_RGB = []
 
     # Varre a pasta de treino pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/train_/*"):
+    for directory_path in glob.glob("amendoas/train/*"):
         label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
             #
@@ -84,7 +84,7 @@ def test_set():
     media_RGB = []
 
     # Varre a pasta de teste pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/test_/*"):
+    for directory_path in glob.glob("amendoas/test/*"):
         fruit_label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
 
@@ -158,9 +158,11 @@ def feature_extractor(dataset, medias):
         # Atributos considerados:
         # Energia, Correlação, dissimilaridade, homogeneidade, contraste e entropia
 
+        # blur = cv2.blur(img, (15, 15))
         n_black = cv2.countNonZero(img)
-        height, width = img.shape
-        n_total = height * width
+
+        # height, width = img.shape
+        # n_total = height * width
 
         # print(f'R: {medias[i][0]}; G: {medias[i][1]}; B: {medias[i][2]}')
 
@@ -182,8 +184,8 @@ def feature_extractor(dataset, medias):
         # # df['variation' + str(n + 1)] = fo.variation(img.reshape(-1))
         df['entropy'] = [fo.entropy(img.reshape(-1))]
         # # df['media'] = np.average(img)
-        area = n_black / n_total
-        df['Area'] = [area]
+        # area = n_black / n_total
+        df['Area'] = [n_black]
         # # df['max' + str(n+1)] = np.max(img)
         entropy = shannon_entropy(img)
         df['Entropy'] = entropy
@@ -400,7 +402,7 @@ test_for_RF = np.reshape(test_features, (x_test.shape[0], -1))
 
 # Predição nos testes
 test_prediction = lgb_model.predict(test_for_RF)
-test_prediction = np.argmax(test_prediction, axis=0)
+test_prediction = np.argmax(test_prediction, axis=1)
 
 print(test_prediction)
 

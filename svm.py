@@ -14,6 +14,7 @@ from skimage.measure import shannon_entropy
 import scipy.stats as fo
 from skimage.filters import gabor
 from radiomics import glcm
+from random import randint
 
 # print(os.listdir("images/natural/"))
 
@@ -41,7 +42,7 @@ def train_set():
     media_RGB = []
 
     # Varre a pasta de treino pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/train/*"):
+    for directory_path in glob.glob("amendoas/train_/*"):
         label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
             #
@@ -84,7 +85,7 @@ def test_set():
     media_RGB = []
 
     # Varre a pasta de teste pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/test/*"):
+    for directory_path in glob.glob("amendoas/test_/*"):
         fruit_label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
 
@@ -158,9 +159,28 @@ def feature_extractor(dataset, medias):
         # Atributos considerados:
         # Energia, Correlação, dissimilaridade, homogeneidade, contraste e entropia
 
-        n_black = cv2.countNonZero(img)
-        height, width = img.shape
-        n_total = height * width
+        # n_black = cv2.countNonZero(img)
+        # height, width = img.shape
+        # n_total = height * width
+
+        blur = cv2.blur(img, (15, 15))
+
+        ret, thresh = cv2.threshold(blur, 10, 255,
+                                    0)  # threshold (essa etapa seria equivalente a segmentação por redes neurais)
+
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # acha os contornos
+        for i, c in enumerate(contours):  # desenha os contornos na imagem com cores aleatórias para cada contorno
+            img_contourn = cv2.drawContours(img, contours, i,
+                                            (randint(0, 255), randint(0, 255), randint(0, 255)), 3)
+
+        # print('Contorno retangular externo:', contours[0], 'possui %i pontos' % len(contours[0]))
+
+        area = cv2.contourArea(contours[0])
+
+        df['Area'] = [area]
+        # print('A área em pixels é de %i pixels.' % area)
+
+
 
         # print(f'R: {medias[i][0]}; G: {medias[i][1]}; B: {medias[i][2]}')
 
@@ -182,8 +202,8 @@ def feature_extractor(dataset, medias):
         # # df['variation' + str(n + 1)] = fo.variation(img.reshape(-1))
         df['entropy'] = [fo.entropy(img.reshape(-1))]
         # # df['media'] = np.average(img)
-        area = n_black / n_total
-        df['Area'] = [area]
+        # area = n_black / n_total
+        # df['Area'] = [area]
         # # df['max' + str(n+1)] = np.max(img)
         entropy = shannon_entropy(img)
         df['Entropy'] = entropy
