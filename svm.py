@@ -41,7 +41,7 @@ def train_set():
     media_RGB = []
 
     # Varre a pasta de treino pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/train_/*"):
+    for directory_path in glob.glob("amendoas/train/*"):
         label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
             #
@@ -84,7 +84,7 @@ def test_set():
     media_RGB = []
 
     # Varre a pasta de teste pegando as fotos da pasta
-    for directory_path in glob.glob("amendoas/test_/*"):
+    for directory_path in glob.glob("amendoas/test/*"):
         fruit_label = directory_path.split("\\")[-1]
         for img_path in glob.glob(os.path.join(directory_path, "*.jpg")):
 
@@ -335,14 +335,14 @@ y_train, y_test = pre_processing(le, train_labels, test_labels)  # Codificando n
 
 # Extração de atributos das imagens de treino
 image_features = feature_extractor(x_train, medias_RGB_treino)
-# X_for_ML = image_features
+X_for_ML = image_features
 
-n_features = image_features.shape[1]
-image_features = np.expand_dims(image_features, axis=0)
-X_for_ML = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #images, features
+# n_features = image_features.shape[1]
+# image_features = np.expand_dims(image_features, axis=0)
+# X_for_ML = np.reshape(image_features, (x_train.shape[0], -1))  #Reshape to #images, features
 
 from sklearn import svm
-SVM_model = svm.SVC(decision_function_shape='ovo')  #For multiclass classification
+SVM_model = svm.SVC()  #For multiclass classification
 SVM_model.fit(X_for_ML, y_train)
 
 
@@ -351,20 +351,29 @@ test_features = np.expand_dims(test_features, axis=0)
 test_for_RF = np.reshape(test_features, (x_test.shape[0], -1))
 
 test_prediction = SVM_model.predict(test_for_RF)
-test_prediction = np.argmax(test_prediction, axis=1)
-
-print(test_prediction)
-print(test_prediction)
-print(test_prediction)
+# test_prediction = np.argmax(test_prediction, axis=0)
 
 test_prediction = le.inverse_transform(test_prediction)
 
 from sklearn import metrics
 
-print("Accurácia = ", metrics.accuracy_score(test_labels, test_prediction))
-print("Precisão = ", metrics.precision_score(test_labels, test_prediction, average='micro'))
-print("Sensibilidade = ", metrics.recall_score(test_labels, test_prediction, average='micro'))
-print("Especificidade = ", metrics.accuracy_score(test_labels, test_prediction, pos_label=0))
+# print("Accurácia = ", metrics.accuracy_score(test_labels, test_prediction))
+# print("Precisão = ", metrics.precision_score(test_labels, test_prediction, average='micro'))
+# print("Sensibilidade = ", metrics.recall_score(test_labels, test_prediction, average='micro'))
+# print("Especificidade = ", metrics.accuracy_score(test_labels, test_prediction, pos_label=0))
+
+from sklearn.metrics import confusion_matrix
+
+print(metrics.classification_report(test_labels, test_prediction))
+
+cm = confusion_matrix(test_labels, test_prediction)
+
+fig, ax = plt.subplots(figsize=(6, 6))  # Sample figsize in inches
+sns.set(font_scale=1.6)
+sns.heatmap(cm, annot=True, linewidths=.5, ax=ax)
+
+plt.show()
+
 
 #
 """
